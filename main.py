@@ -83,8 +83,8 @@ MODEL_DIR = '/scratch/rawhad/CSE507/practice_1/models'
 
 if is_master_process:
   os.makedirs(MODEL_DIR, exist_ok=True)
-  #LOGGER = logger.WandbLogger(project_name=PROJECT_NAME, run_name=RUN_NAME)
-  LOGGER = logger.ConsoleLogger(project_name='cse507_practice_1', run_name='test-chexpert')
+  LOGGER = logger.WandbLogger(project_name=PROJECT_NAME, run_name=RUN_NAME)
+  #LOGGER = logger.ConsoleLogger(project_name='cse507_practice_1', run_name='test-chexpert')
   print('GRAD_ACCUM_STEPS: ', GRAD_ACCUM_STEPS)
 else:
   LOGGER = None
@@ -131,7 +131,8 @@ engine.run(training_config)
 if is_master_process:
   # save models
   if SAVE_MODEL:
-    torch.save(model.state_dict(), os.path.join(MODEL_DIR, 'model_final.pth'))
+    os.makedirs(os.path.join(MODEL_DIR, RUN_NAME), exist_ok=True)
+    torch.save(model.state_dict(), os.path.join(MODEL_DIR, RUN_NAME, 'model_final.pth'))
 
 if is_ddp:
   destroy_process_group()
