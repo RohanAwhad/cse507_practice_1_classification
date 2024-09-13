@@ -66,7 +66,7 @@ class CheXpertDatasetLoaderLite(Dataset):
       self.curr_idx = self.offset
       self.curr_shard = self.load_shard(self.curr_file_ptr)
     images, labels = zip(*batch)
-    labels = torch.tensor(labels).long()
+    labels = torch.tensor(labels).float()
     label_masks = (labels != -1).long()
     return {'image': torch.stack(images), 'label': labels, 'label_mask': label_masks}
 

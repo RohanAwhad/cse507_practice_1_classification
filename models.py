@@ -1,3 +1,4 @@
+# models.py
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 
 # All rights reserved.
@@ -121,7 +122,7 @@ class ConvNeXt(nn.Module):
           https://arxiv.org/pdf/2201.03545.pdf
 
     Args:
-        in_chans (int): Number of input image channels. Default: 3
+        in_chans (int): Number of input image channels. Default: 1
         num_classes (int): Number of classes for classification head. Default: 1000
         depths (tuple(int)): Number of blocks at each stage. Default: [3, 3, 9, 3]
         dims (int): Feature dimension at each stage. Default: [96, 192, 384, 768]
@@ -129,7 +130,7 @@ class ConvNeXt(nn.Module):
         layer_scale_init_value (float): Init value for Layer Scale. Default: 1e-6.
         head_init_scale (float): Init scaling value for classifier weights and biases. Default: 1.
     """
-    def __init__(self, in_chans=3, num_classes=1000,
+    def __init__(self, in_chans=1, num_classes=1000,
                  depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], drop_path_rate=0.,
                  layer_scale_init_value=1e-6, head_init_scale=1.,
                  ):
@@ -208,7 +209,6 @@ class LayerNorm(nn.Module):
             x = self.weight[:, None, None] * x + self.bias[:, None, None]
             return x
 
-# models.py
 def get_convnext_model(model_name, num_classes):
     if model_name == 'convnext_tiny':
         return ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], num_classes=num_classes)
