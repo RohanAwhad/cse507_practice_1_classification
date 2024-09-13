@@ -92,8 +92,9 @@ else:
 # ===
 # Intialization
 # ===
-torch.manual_seed(1234)  # setting seed because we are using DDP
-if torch.cuda.is_available(): torch.cuda.manual_seed(1234)
+if is_ddp:
+    torch.manual_seed(1234)  # setting seed because we are using DDP
+    if torch.cuda.is_available(): torch.cuda.manual_seed(1234)
 
 train_ds = CheXpertDatasetLoaderLite(split='train', batch_size=MICRO_BATCH_SIZE, root=DATA_DIR, process_rank=ddp_rank, world_size=ddp_world_size, prefetch_size=PREFETCH_SIZE, use_worker=USE_WORKER)
 test_ds = CheXpertDatasetLoaderLite(split='valid', batch_size=MICRO_BATCH_SIZE, root=DATA_DIR, process_rank=ddp_rank, world_size=ddp_world_size, prefetch_size=1)

@@ -11,5 +11,5 @@ python main.py \
   --prefetch_size 4 \
   --use_worker \
   --dropout_rate 0.1 \
-  --lr 3e-4 \
+  --lr 1e-4 \
 ;

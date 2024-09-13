@@ -3,11 +3,13 @@ import dataclasses
 import inspect
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.distributed as dist
+from sklearn.metrics import roc_auc_score
 
 from dataset import Dataset
 from logger import Logger
@@ -83,6 +85,7 @@ class EngineConfig:
 
 def run(config: EngineConfig):
   PLOT_EVERY = 100 if config.do_overfit else 1000
+  EVAL_EVERY = 1000
 
   device_type = 'cuda' if config.device.startswith('cuda') else config.device
 
@@ -125,6 +128,7 @@ def run(config: EngineConfig):
       model=dict(total_loss = 0.0),
     )
 
+    config.model.train()
     model_opt.zero_grad()
     for micro_step in range(config.grad_accum_steps):
       batch = config.train_ds.next_batch()
@@ -178,8 +182,49 @@ def run(config: EngineConfig):
       config.logger.log(dict(test_images = fig), step=step)
       plt.close()
 
-    # periodically save model and optimizer state
-    if (step + 1) % config.checkpoint_every == 0 and config.is_master_process:
-      with open(f'{config.checkpoint_dir}/last_step.txt', 'w') as f: f.write(str(step))
-      torch.save(raw_model.state_dict(), f'{config.checkpoint_dir}/model.pth')
-      torch.save(model_opt.state_dict(), f'{config.checkpoint_dir}/model_opt.pth')
+    # periodically evaluate model
+    if step % EVAL_EVERY == 0 and config.is_master_process:
+      with torch.no_grad():
+        config.model.eval()
+        total_loss = 0
+        total_correct = 0
+        total_samples = 0
+        all_labels = []
+        all_probs = []
+        for _ in range(2): # evaluate on 2 batches
+          batch = config.test_ds.next_batch()
+          images = batch['image'].to(config.device)
+          labels = batch['label'].to(config.device)
+          label_masks = batch['label_mask'].to(config.device)
+          outputs = config.model(images)
+          loss = F.binary_cross_entropy_with_logits(outputs, labels, reduction='none')
+          loss = (loss * label_masks).sum() / label_masks.sum()
+          total_loss += loss.item()
+          probs = torch.sigmoid(outputs)
+          predicted = (probs > 0.5).int()
+          total_correct += (predicted == labels).sum().item()
+          total_samples += labels.shape[0] * labels.shape[1]
+          all_labels.extend(labels.cpu().numpy())
+          all_probs.extend(probs.cpu().numpy())
+        avg_loss = total_loss / 2
+        accuracy = total_correct / total_samples
+        
+        # Calculate AUC for each class separately
+        all_labels = np.array(all_labels)
+        all_probs = np.array(all_probs)
+        num_classes = all_labels.shape[1]
+        aucs = []
+        for i in range(num_classes):
+          try:
+            auc = roc_auc_score(all_labels[:, i], all_probs[:, i])
+            aucs.append(auc)
+          except ValueError:
+            # Handle the case where only one class is present
+            aucs.append(np.nan)
+        
+        # Calculate the average AUC
+        avg_auc = np.nanmean(aucs)
+        
+        print(f'Evaluation at step {step}: Loss = {avg_loss:.4f}, Accuracy = {accuracy:.4f}, AUC = {avg_auc:.4f}')
+        config.logger.log(dict(evaluation_loss = avg_loss, evaluation_accuracy = accuracy, evaluation_auc = avg_auc), step=step)
+        config.model.train()
