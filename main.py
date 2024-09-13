@@ -79,12 +79,12 @@ WARMUP_STEPS = int(MAX_STEPS * 0.037) # based on build_nanogpt ratio
 MAX_LR = LR
 MIN_LR = LR / 10
 
-MODEL_DIR = '/scratch/rawhad/ConvNext/models'
+MODEL_DIR = '/scratch/rawhad/CSE507/practice_1/models'
 
 if is_master_process:
   os.makedirs(MODEL_DIR, exist_ok=True)
-  LOGGER = logger.WandbLogger(project_name=PROJECT_NAME, run_name=RUN_NAME)
-  #LOGGER = logger.ConsoleLogger(project_name='vqgan', run_name='test-imagenet')
+  #LOGGER = logger.WandbLogger(project_name=PROJECT_NAME, run_name=RUN_NAME)
+  LOGGER = logger.ConsoleLogger(project_name='cse507_practice_1', run_name='test-chexpert')
   print('GRAD_ACCUM_STEPS: ', GRAD_ACCUM_STEPS)
 else:
   LOGGER = None
@@ -96,11 +96,9 @@ torch.manual_seed(1234)  # setting seed because we are using DDP
 if torch.cuda.is_available(): torch.cuda.manual_seed(1234)
 
 train_ds = CheXpertDatasetLoaderLite(split='train', batch_size=MICRO_BATCH_SIZE, root=DATA_DIR, process_rank=ddp_rank, world_size=ddp_world_size, prefetch_size=PREFETCH_SIZE, use_worker=USE_WORKER)
-test_ds = CheXpertDatasetLoaderLite(split='test', batch_size=MICRO_BATCH_SIZE, root=DATA_DIR, process_rank=ddp_rank, world_size=ddp_world_size, prefetch_size=1)
+test_ds = CheXpertDatasetLoaderLite(split='valid', batch_size=MICRO_BATCH_SIZE, root=DATA_DIR, process_rank=ddp_rank, world_size=ddp_world_size, prefetch_size=1)
 
-model = get_convnext_model(MODEL_NAME)
-num_classes = 14
-model.head = nn.Linear(model.head.in_features, num_classes)
+model = get_convnext_model(MODEL_NAME, num_classes=14)
 
 # ===
 # Configure Optimizers and LR Schedulers

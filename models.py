@@ -208,16 +208,17 @@ class LayerNorm(nn.Module):
             x = self.weight[:, None, None] * x + self.bias[:, None, None]
             return x
 
-def get_convnext_model(model_name):
+# models.py
+def get_convnext_model(model_name, num_classes):
     if model_name == 'convnext_tiny':
-        return ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768])
+        return ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], num_classes=num_classes)
     elif model_name == 'convnext_small':
-        return ConvNeXt(depths=[3, 3, 27, 3], dims=[96, 192, 384, 768])
+        return ConvNeXt(depths=[3, 3, 27, 3], dims=[96, 192, 384, 768], num_classes=num_classes)
     elif model_name == 'convnext_base':
-        return ConvNeXt(depths=[3, 3, 27, 3], dims=[128, 256, 512, 1024])
+        return ConvNeXt(depths=[3, 3, 27, 3], dims=[128, 256, 512, 1024], num_classes=num_classes)
     elif model_name == 'convnext_large':
-        return ConvNeXt(depths=[3, 3, 27, 3], dims=[192, 384, 768, 1536])
+        return ConvNeXt(depths=[3, 3, 27, 3], dims=[192, 384, 768, 1536], num_classes=num_classes)
     elif model_name == 'convnext_xlarge':
-        return ConvNeXt(depths=[3, 3, 27, 3], dims=[256, 512, 1024, 2048])
+        return ConvNeXt(depths=[3, 3, 27, 3], dims=[256, 512, 1024, 2048], num_classes=num_classes)
     else:
         raise ValueError(f"Unrecognized model name: {model_name}")
