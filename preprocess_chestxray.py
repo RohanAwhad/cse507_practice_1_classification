@@ -104,11 +104,11 @@ def process_images(paths):
 # ===
 # Save results
 # ===
-def save_results(results, shard_id):
-    with open(os.path.join(SAVE_DIR, f"shard_{shard_id}.pkl"), 'wb') as f:
+def save_results(results, shard_id, save_dir):
+    with open(os.path.join(save_dir, f"shard_{shard_id}.pkl"), 'wb') as f:
         pickle.dump(results, f)
 
-    print('Saved Shard:', shard_id, 'at', SAVE_DIR)
+    print('Saved Shard:', shard_id, 'at', save_dir)
 
 # ===
 # Find all JPG files
@@ -140,7 +140,6 @@ print('Gotten all paths')
 # Load labels
 # ===
 
-'''
 labels_df = pd.read_csv("/data/courses/2024/class_ImageSummerFall2024_jliang12/chexpertchestxrays-u20210408/train_cheXbert.csv").fillna(-1)
 print(labels_df.head())
 
@@ -162,13 +161,12 @@ with mp.Pool(n_procs) as pool:
     for chunk in tqdm(pool.imap_unordered(process_images, [paths[i:i+chunksize] for i in range(0, len(paths), chunksize)], chunksize=1)):
         results.extend(chunk)
         if len(results) >= SHARD_SIZE:
-            save_results(results, shard_id)
+            save_results(results, shard_id, SAVE_DIR)
             results = []
             shard_id += 1
     if len(results) > 0:
-        save_results(results, shard_id)
+        save_results(results, shard_id, SAVE_DIR)
 
-'''
 
 
 # ===
@@ -186,8 +184,6 @@ def process_valid_image(path):
     img = Image.open(path)
     img = transform(img, only_resize=True)
     label_identifier = 'CheXpert-v1.0/valid/' + '/'.join(path.split('/')[-3:])
-    print('Path:', path)
-    print('Label Identifier:', label_identifier)
     label = valid_labels_df[valid_labels_df['Path'] == label_identifier][LABEL_COLS].iloc[0].values.astype(np.float32)
     return (img, label)
 
@@ -197,11 +193,12 @@ for root, dirs, files in os.walk("/data/courses/2024/class_ImageSummerFall2024_j
         if file_.endswith('.jpg'): valid_paths.append(os.path.join(root, file_))
 
 valid_results = []
+shard_id = 0
 for path in tqdm(valid_paths):
     valid_results.append(process_valid_image(path))
     if len(valid_results) >= 5000:
-        save_results(valid_results, shard_id)
+        save_results(valid_results, shard_id, VALID_SAVE_DIR)
         valid_results = []
         shard_id += 1
 if len(valid_results) > 0:
-    save_results(valid_results, shard_id)
+    save_results(valid_results, shard_id, VALID_SAVE_DIR)
