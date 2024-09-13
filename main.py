@@ -4,7 +4,7 @@ import torch
 
 import engine, logger
 from dataset import CheXpertDatasetLoaderLite
-from models import get_convnext_model
+from models import get_convnext_model, create_custom_model
 
 # ===
 # DDP setup
@@ -54,6 +54,7 @@ argparser.add_argument('--do_overfit', action='store_true')
 argparser.add_argument('--project_name', type=str, default='chexpert')
 argparser.add_argument('--run_name', type=str, default='test')
 argparser.add_argument('--model_name', type=str, default='convnext_tiny')
+argparser.add_argument('--pretrained', action='store_true')
 args = argparser.parse_args()
 
 LR = args.lr
@@ -73,6 +74,7 @@ RUN_NAME = args.run_name
 LAST_STEP = args.last_step
 DO_OVERFIT = args.do_overfit
 MODEL_NAME = args.model_name
+PRETRAINED = args.pretrained
 
 MAX_STEPS = min(N_STEPS // 3, 2408) if DO_OVERFIT else 2408 # ~1epoch
 WARMUP_STEPS = int(MAX_STEPS * 0.037) # based on build_nanogpt ratio
@@ -99,7 +101,10 @@ if is_ddp:
 train_ds = CheXpertDatasetLoaderLite(split='train', batch_size=MICRO_BATCH_SIZE, root=DATA_DIR, process_rank=ddp_rank, world_size=ddp_world_size, prefetch_size=PREFETCH_SIZE, use_worker=USE_WORKER)
 test_ds = CheXpertDatasetLoaderLite(split='valid', batch_size=MICRO_BATCH_SIZE, root=DATA_DIR, process_rank=ddp_rank, world_size=ddp_world_size, prefetch_size=1)
 
-model = get_convnext_model(MODEL_NAME, num_classes=14)
+if PRETRAINED:
+    model = create_custom_model(MODEL_NAME, num_classes=14)
+else:
+    model = get_convnext_model(MODEL_NAME, num_classes=14)
 
 # ===
 # Configure Optimizers and LR Schedulers

@@ -12,6 +12,7 @@ import warnings
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import timm
 
 @torch.no_grad()
 def trunc_normal_(tensor, mean=0., std=1., a=-2., b=2.):
@@ -77,7 +78,6 @@ class DropPath(nn.Module):
 
     def extra_repr(self):
         return f'drop_prob={round(self.drop_prob,3):0.3f}'
-
 
 class Block(nn.Module):
     r""" ConvNeXt Block. There are two equivalent implementations:
@@ -209,6 +209,18 @@ class LayerNorm(nn.Module):
             x = self.weight[:, None, None] * x + self.bias[:, None, None]
             return x
 
+class CustomModel(nn.Module):
+    def __init__(self, model_name, num_classes):
+        super(CustomModel, self).__init__()
+        self.model = timm.create_model(model_name, pretrained=True)
+        self.model.reset_classifier(0) # Remove the classification head
+        self.custom_head = nn.Linear(self.model.feature_info.info[-1]['num_chs'], num_classes)
+
+    def forward(self, x):
+        features = self.model(x)
+        x = self.custom_head(features)
+        return x
+
 def get_convnext_model(model_name, num_classes):
     if model_name == 'convnext_tiny':
         return ConvNeXt(depths=[3, 3, 9, 3], dims=[96, 192, 384, 768], num_classes=num_classes)
@@ -222,3 +234,6 @@ def get_convnext_model(model_name, num_classes):
         return ConvNeXt(depths=[3, 3, 27, 3], dims=[256, 512, 1024, 2048], num_classes=num_classes)
     else:
         raise ValueError(f"Unrecognized model name: {model_name}")
+
+def create_custom_model(model_name, num_classes):
+    return CustomModel(model_name, num_classes)
