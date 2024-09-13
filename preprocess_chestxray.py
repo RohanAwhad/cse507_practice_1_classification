@@ -136,11 +136,11 @@ else:
 
 
 print('Gotten all paths')
-exit(0)
 # ===
 # Load labels
 # ===
 
+'''
 labels_df = pd.read_csv("/data/courses/2024/class_ImageSummerFall2024_jliang12/chexpertchestxrays-u20210408/train_cheXbert.csv").fillna(-1)
 print(labels_df.head())
 
@@ -151,6 +151,7 @@ print(labels_df.head())
 #paths = labels_df['Path'].values
 #n_procs = max(1, os.cpu_count()//2)
 n_procs = 8
+SHARD_SIZE = 5000
 print(f"Using {n_procs} processes")
 
 
@@ -160,9 +161,47 @@ with mp.Pool(n_procs) as pool:
     shard_id = 0
     for chunk in tqdm(pool.imap_unordered(process_images, [paths[i:i+chunksize] for i in range(0, len(paths), chunksize)], chunksize=1)):
         results.extend(chunk)
-        if len(results) >= 2000:
+        if len(results) >= SHARD_SIZE:
             save_results(results, shard_id)
             results = []
             shard_id += 1
     if len(results) > 0:
         save_results(results, shard_id)
+
+'''
+
+
+# ===
+# Valid Split
+# ===
+print('Sharding Validation split')
+
+VALID_SAVE_DIR = "/scratch/rawhad/CSE507/practice_1/chexpert_preprocessed_ds/valid_ds"
+os.makedirs(VALID_SAVE_DIR, exist_ok=True)
+
+valid_labels_df = pd.read_csv("/data/courses/2024/class_ImageSummerFall2024_jliang12/chexpertchestxrays-u20210408/CheXpert-v1.0_batch_1_val_and_csv/valid.csv").fillna(-1)
+print(valid_labels_df.head())
+
+def process_valid_image(path):
+    img = Image.open(path)
+    img = transform(img, only_resize=True)
+    label_identifier = 'CheXpert-v1.0/valid/' + '/'.join(path.split('/')[-3:])
+    print('Path:', path)
+    print('Label Identifier:', label_identifier)
+    label = valid_labels_df[valid_labels_df['Path'] == label_identifier][LABEL_COLS].iloc[0].values.astype(np.float32)
+    return (img, label)
+
+valid_paths = []
+for root, dirs, files in os.walk("/data/courses/2024/class_ImageSummerFall2024_jliang12/chexpertchestxrays-u20210408/CheXpert-v1.0_batch_1_val_and_csv/valid"):
+    for file_ in files:
+        if file_.endswith('.jpg'): valid_paths.append(os.path.join(root, file_))
+
+valid_results = []
+for path in tqdm(valid_paths):
+    valid_results.append(process_valid_image(path))
+    if len(valid_results) >= 5000:
+        save_results(valid_results, shard_id)
+        valid_results = []
+        shard_id += 1
+if len(valid_results) > 0:
+    save_results(valid_results, shard_id)
