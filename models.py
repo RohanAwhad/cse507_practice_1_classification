@@ -214,6 +214,16 @@ class CustomModel(nn.Module):
         super(CustomModel, self).__init__()
         self.model = timm.create_model(model_name, pretrained=True)
         self.model.reset_classifier(0) # Remove the classification head
+        # Get the current first conv layer
+        first_conv = self.model.blocks[0][0]
+        # Create a new conv layer with 1 input channel
+        new_first_conv = nn.Conv2d(1, first_conv.out_channels, 
+                                   kernel_size=first_conv.kernel_size, 
+                                   stride=first_conv.stride, 
+                                   padding=first_conv.padding, 
+                                   bias=first_conv.bias is not None)
+        # Replace the old first conv layer with the new one
+        self.model.blocks[0][0] = new_first_conv
         self.custom_head = nn.Linear(self.model.feature_info.info[-1]['num_chs'], num_classes)
 
     def forward(self, x):
