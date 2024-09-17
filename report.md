@@ -14,7 +14,7 @@ The model training and fine-tuning process is orchestrated using a structured an
 
 ### 1. Setup and Configuration
 - **Optimizer Configuration**: The model parameters are grouped based on their dimensions, and an AdamW optimizer is configured with appropriate weight decay. If the training is executed on a CUDA device, a fused optimizer is utilized for enhanced performance.
-  
+
 - **Learning Rate Scheduler**: A cosine learning rate scheduler is employed, featuring a linear warmup phase, a plateau, and a cosine decay. This scheduling strategy helps in gradually ramping up the learning rate at the start, maintaining stability, and then decaying to ensure convergence.
 
 ### 2. Training Loop
@@ -47,5 +47,49 @@ Each setup was repeated ten times to ensure consistent results and statistical r
 ## Results and Discussion
 *Results Placeholder*: This section will detail the performance metrics achieved, including accuracy, loss curves, and any salient observations comparing the two training approaches.
 
+#### Full Training vs. Fine-tuning
+
+**Tabular Results Analysis:**
+
+The tabular results for both full training and fine-tuning scenarios reveal significant insights into model performance:
+
+1. **Evaluation AUC:**
+   - The fine-tuned ConvNeXt models consistently achieved higher evaluation AUCs than the fully trained models. The top run for the fine-tuned model reached an AUC of 0.81458, whereas the top run for the fully trained model was significantly lower at 0.69064.
+   - Fine-tuning leverages pretrained weights, which likely aids in capturing more complex patterns in the data, leading to improved AUC scores.
+
+2. **Evaluation Loss and Total Loss:**
+   - Fine-tuned models not only performed better in terms of AUC but also achieved lower evaluation and total losses. This suggests that fine-tuning results in models that generalize better and learn more efficiently from the data.
+
+**Line Chart Analysis:**
+
+3. **AUC Progression:**
+   - Both full training and fine-tuning plots show an initial sharp increase in AUC, indicating rapid learning during the initial training phase.
+   - However, the fine-tuning plots demonstrate a consistently higher plateau compared to full training, reaffirming the advantages of starting with pretrained weights.
+   - The stability in AUC towards the later stages of training in fine-tuning suggests that the model converges well without significant overfitting.
+
+**Overall Observations:**
+
+4. **Consistency in Fine-tuning:**
+   - Fine-tuning runs exhibit a narrower spread in AUC scores, indicating more consistent performance across different runs. This suggests that fine-tuning provides a robust starting point that reduces variance in model performance.
+
+5. **Training Efficiency:**
+   - The efficiency of fine-tuning is evident not only in higher AUCs and lower losses but also in achieving these metrics with fewer resources, as the pretrained model already encapsulates a wealth of visual information.
+
+In conclusion, fine-tuning pretrained ConvNeXt models on the CheXpert dataset significantly outperforms training from scratch. The gains in AUC and reductions in loss, coupled with more consistent results across runs, underscore the benefits of utilizing pretrained architectures for complex medical imaging tasks.
+
+**Figures and Tables:**
+
+- **Figure 1:** Tabular results for full training sorted from highest eval AUC to lowest.
+- **Figure 2:** Tabular results for fine-tuning a pretrained ConvNeXt sorted from highest eval AUC to lowest.
+- **Figure 3:** Line chart showcasing eval AUC for full model training over the training loop.
+- **Figure 4:** Line chart showcasing eval AUC for fine-tuning model over the training loop.
+
 ## Conclusion
-*Conclusion Placeholder*: Summarizes the findings and implications of the experiments, discussing potential improvements and future work.
+
+The experiments conducted in this project demonstrate the significant advantages of fine-tuning pretrained ConvNeXt models over training from scratch, particularly in the context of medical imaging using the CheXpert dataset. The consistent observation that fine-tuned models achieve higher AUC scores and lower losses underscores the efficacy of leveraging pretrained weights to capture complex patterns in the data more effectively.
+
+The results indicate that fine-tuning not only enhances model performance but also ensures greater consistency across multiple runs, reflecting its robustness as a training strategy. Moreover, the efficiency gains evident from the reduced computational resources required by the fine-tuned models further highlight the practical benefits of this approach.
+
+Future work could explore extending this comparative analysis across additional datasets and model architectures to validate the generalizability of these findings. Additionally, investigating the incorporation of more advanced techniques in the fine-tuning process, such as domain-specific pretraining or transfer learning from related medical imaging tasks, could further improve model performance.
+
+Ultimately, the insights gained from this study have important implications for developing robust, efficient, and high-performing deep learning models in the healthcare domain, where accuracy and reliability are paramount.
