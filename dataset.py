@@ -1,4 +1,3 @@
-# dataset.py
 import glob
 import multiprocessing as mp
 import os
@@ -22,12 +21,13 @@ class Dataset(ABC):
     pass
 
 class CheXpertDatasetLoaderLite(Dataset):
-  def __init__(self, root: str, split: str, batch_size: int, process_rank: int, world_size: int, use_worker: bool = False, prefetch_size: int = 1):
+  def __init__(self, root: str, split: str, batch_size: int, process_rank: int, world_size: int, use_worker: bool = False, prefetch_size: int = 1, shuffle: bool = False):
     self.root = root
     self.batch_size = batch_size
     self.split = split
     self.process_rank = process_rank
     self.world_size = world_size
+    self.shuffle = shuffle
 
     self.files = glob.glob(os.path.join(root, f'{split}_ds', f'shard_*.pkl'))
     self.shard_size = self._get_shard_size()
@@ -65,6 +65,8 @@ class CheXpertDatasetLoaderLite(Dataset):
       self.curr_file_ptr = (self.curr_file_ptr + 1) % len(self.files)  # cycle through files if necessary
       self.curr_idx = self.offset
       self.curr_shard = self.load_shard(self.curr_file_ptr)
+      if self.shuffle:
+          random.shuffle(self.curr_shard)
     images, labels = zip(*batch)
     labels = torch.tensor(labels).float()
     label_masks = (labels != -1).long()
@@ -75,6 +77,8 @@ class CheXpertDatasetLoaderLite(Dataset):
       if self.curr_file_ptr is None or self.curr_file_ptr != 0:  # loading shard is costly, and this op is common during overfitting or hyperparameter tuning
         self.curr_file_ptr = 0
         self.curr_shard = self.load_shard(self.curr_file_ptr)
+        if self.shuffle:
+          random.shuffle(self.curr_shard)
       self.curr_idx = self.offset
 
     else:
@@ -94,6 +98,8 @@ class CheXpertDatasetLoaderLite(Dataset):
     if self.curr_file_ptr is None or self.curr_file_ptr != 0:  # loading shard is costly, and this op is common during overfitting or hyperparameter tuning
       self.curr_file_ptr = 0
       self.curr_shard = self.load_shard(self.curr_file_ptr)
+      if self.shuffle:
+          random.shuffle(self.curr_shard)
     self.curr_idx = self.offset
     self._fill_queue()
 
